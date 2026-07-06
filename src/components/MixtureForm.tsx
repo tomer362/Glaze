@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createMixture } from "@/lib/actions/mixtures";
 import { ImageUpload } from "./ImageUpload";
 import { MixtureColorBuilder, type ColorOption } from "./MixtureColorBuilder";
@@ -16,6 +16,7 @@ export function MixtureForm({
   initialColorIds?: string[];
 }) {
   const [state, action, pending] = useActionState(createMixture, {});
+  const [amountsValid, setAmountsValid] = useState(true);
 
   return (
     <form action={action} className="flex flex-col gap-5">
@@ -31,7 +32,11 @@ export function MixtureForm({
         />
       </label>
 
-      <MixtureColorBuilder colors={colors} initialColorIds={initialColorIds} />
+      <MixtureColorBuilder
+        colors={colors}
+        initialColorIds={initialColorIds}
+        onAmountsValidityChange={setAmountsValid}
+      />
 
       <ImageUpload
         name="resultImageUrl"
@@ -50,10 +55,15 @@ export function MixtureForm({
       </label>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {!amountsValid && (
+        <p className="text-sm text-amber-600">
+          סכום האחוזים חייב להיות 100% לפני פרסום.
+        </p>
+      )}
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || !amountsValid}
         className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
       >
         {pending ? "שומר…" : "פרסום הערבוב"}

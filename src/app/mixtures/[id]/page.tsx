@@ -6,12 +6,7 @@ import { auth } from "@/lib/auth";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { DeleteButton } from "@/components/DeleteButton";
 import { deleteMixture } from "@/lib/actions/deletions";
-
-const unitLabels: Record<string, string> = {
-  parts: "חלקים",
-  grams: "גרם",
-  "%": "%",
-};
+import { unitLabel } from "@/lib/units";
 
 export default async function MixtureDetailPage({
   params,
@@ -101,7 +96,7 @@ export default async function MixtureDetailPage({
               </Link>
               {mixture.hasAmounts && c.amount != null && (
                 <span className="rounded-md bg-background px-2 py-1 text-sm">
-                  {c.amount} {c.unit ? unitLabels[c.unit] ?? c.unit : ""}
+                  {c.amount} {c.unit ? unitLabel(c.unit) : ""}
                 </span>
               )}
             </li>

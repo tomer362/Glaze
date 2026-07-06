@@ -14,7 +14,7 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold">
           <span
             aria-hidden
@@ -29,7 +29,7 @@ export async function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 text-sm sm:gap-2 sm:text-base">
+        <nav className="flex min-w-0 items-center gap-1 text-sm sm:gap-2 sm:text-base">
           {navItems.map((item) => (
             <Link
               key={item.href}
