@@ -1,0 +1,170 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { ColorSwatch } from "./ColorSwatch";
+
+export type ColorOption = {
+  id: string;
+  name: string;
+  brand: string | null;
+  code: string | null;
+  hex: string | null;
+  imageUrl: string | null;
+};
+
+type Selected = { color: ColorOption; amount: string; unit: string };
+
+const UNITS = [
+  { value: "parts", label: "חלקים" },
+  { value: "grams", label: "גרם" },
+  { value: "%", label: "אחוז" },
+];
+
+function labelFor(c: ColorOption) {
+  return [c.brand, c.code, c.name].filter(Boolean).join(" · ");
+}
+
+/**
+ * Lets the user assemble a mixture: search + add colors, optionally record an
+ * amount/unit per color. Serializes the selection into hidden inputs consumed
+ * by the createMixture server action.
+ */
+export function MixtureColorBuilder({ colors }: { colors: ColorOption[] }) {
+  const [selected, setSelected] = useState<Selected[]>([]);
+  const [query, setQuery] = useState("");
+  const [recordAmounts, setRecordAmounts] = useState(false);
+
+  const selectedIds = useMemo(
+    () => new Set(selected.map((s) => s.color.id)),
+    [selected],
+  );
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return colors
+      .filter((c) => !selectedIds.has(c.id))
+      .filter((c) => q === "" || labelFor(c).toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [colors, query, selectedIds]);
+
+  function add(color: ColorOption) {
+    setSelected((s) => [...s, { color, amount: "", unit: "parts" }]);
+    setQuery("");
+  }
+  function remove(id: string) {
+    setSelected((s) => s.filter((x) => x.color.id !== id));
+  }
+  function update(id: string, patch: Partial<Selected>) {
+    setSelected((s) =>
+      s.map((x) => (x.color.id === id ? { ...x, ...patch } : x)),
+    );
+  }
+
+  const componentsPayload = JSON.stringify(
+    selected.map((s) => ({
+      glazeColorId: s.color.id,
+      amount: recordAmounts && s.amount !== "" ? Number(s.amount) : null,
+      unit: recordAmounts ? s.unit : null,
+    })),
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="text-sm font-medium">
+        צבעים בערבוב <span className="text-primary">*</span>
+      </label>
+
+      {/* search + add */}
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="חיפוש צבע להוספה…"
+          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+        {query.trim() !== "" && matches.length > 0 && (
+          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+            {matches.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => add(c)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-background"
+                >
+                  <ColorSwatch color={c} size="sm" />
+                  <span>{labelFor(c)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* toggle amounts */}
+      <label className="flex items-center gap-2 text-sm text-muted">
+        <input
+          type="checkbox"
+          checked={recordAmounts}
+          onChange={(e) => setRecordAmounts(e.target.checked)}
+        />
+        רישום כמויות / יחסים (לא חובה)
+      </label>
+
+      {/* selected list */}
+      {selected.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border p-3 text-sm text-muted">
+          עדיין לא נבחרו צבעים. צריך לפחות שניים.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {selected.map((s) => (
+            <li
+              key={s.color.id}
+              className="flex items-center gap-3 rounded-lg border border-border bg-surface p-2"
+            >
+              <ColorSwatch color={s.color} size="sm" />
+              <span className="flex-1 text-sm">{labelFor(s.color)}</span>
+              {recordAmounts && (
+                <>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={s.amount}
+                    onChange={(e) =>
+                      update(s.color.id, { amount: e.target.value })
+                    }
+                    placeholder="כמות"
+                    className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary"
+                  />
+                  <select
+                    value={s.unit}
+                    onChange={(e) => update(s.color.id, { unit: e.target.value })}
+                    className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+                  >
+                    {UNITS.map((u) => (
+                      <option key={u.value} value={u.value}>
+                        {u.label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => remove(s.color.id)}
+                className="rounded-md px-2 py-1 text-sm text-muted hover:text-red-600"
+                aria-label="הסרה"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <input type="hidden" name="components" value={componentsPayload} />
+    </div>
+  );
+}

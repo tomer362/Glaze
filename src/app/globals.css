@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  /* Warm, kiln / clay inspired palette */
+  --background: #faf6f0;
+  --surface: #ffffff;
+  --foreground: #2b2320;
+  --muted: #7c6f66;
+  --border: #e7ddd1;
+  --primary: #b5510f; /* fired terracotta */
+  --primary-foreground: #ffffff;
+  --accent: #2f6f6a; /* celadon */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #171310;
+    --surface: #211b17;
+    --foreground: #f2ebe3;
+    --muted: #a99a8d;
+    --border: #372e27;
+    --primary: #e0731f;
+    --primary-foreground: #1a120c;
+    --accent: #64b3ac;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-heebo), system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Subtle card ring helper reused across the app */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+}
