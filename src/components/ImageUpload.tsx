@@ -125,6 +125,7 @@ export function ImageUpload({
   const [url, setUrl] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [progress, setProgress] = useState(0);
+  const [attempt, setAttempt] = useState(0);
   const [sizeKb, setSizeKb] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -134,11 +135,9 @@ export function ImageUpload({
 
     setStage("compressing");
     setProgress(0);
+    setAttempt(0);
     setSizeKb(null);
     setError("");
-
-    const controller = new AbortController();
-    const uploadTimeout = setTimeout(() => controller.abort(), 60_000);
 
     try {
       // Compress with its own timeout; if decoding fails, upload the original
@@ -154,25 +153,43 @@ export function ImageUpload({
         file = picked;
       }
       setSizeKb(Math.round(file.size / 1024));
-
       setStage("uploading");
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-        abortSignal: controller.signal,
-        onUploadProgress: (ev) => setProgress(Math.round(ev.percentage)),
-      });
-      setUrl(blob.url);
-      setStage("idle");
+
+      // Weak mobile links stall mid-PUT; retry a few times, each time-boxed, so
+      // a transient stall recovers instead of hanging or failing outright.
+      const maxAttempts = 3;
+      let lastErr: unknown;
+      for (let i = 1; i <= maxAttempts; i++) {
+        setAttempt(i);
+        setProgress(0);
+        const controller = new AbortController();
+        const perTry = setTimeout(() => controller.abort(), 30_000);
+        try {
+          const blob = await upload(file.name, file, {
+            access: "public",
+            handleUploadUrl: "/api/upload",
+            abortSignal: controller.signal,
+            onUploadProgress: (ev) => setProgress(Math.round(ev.percentage)),
+          });
+          clearTimeout(perTry);
+          setUrl(blob.url);
+          setStage("idle");
+          return;
+        } catch (err) {
+          clearTimeout(perTry);
+          lastErr = err;
+          if (i < maxAttempts) {
+            await new Promise((r) => setTimeout(r, 1200 * i)); // backoff
+          }
+        }
+      }
+      throw lastErr ?? new Error("ההעלאה נכשלה");
     } catch (err) {
       setStage("error");
       setError(
-        controller.signal.aborted
-          ? "ההעלאה ארכה יותר מדי — נסו שוב או בחרו תמונה קטנה יותר."
-          : (err as Error).message || "ההעלאה נכשלה",
+        (err as Error)?.message ||
+          "ההעלאה נכשלה — נסו שוב, ואם אפשר בחיבור Wi‑Fi.",
       );
-    } finally {
-      clearTimeout(uploadTimeout);
     }
   }
 
@@ -181,7 +198,7 @@ export function ImageUpload({
     stage === "compressing"
       ? "מכווץ תמונה…"
       : stage === "uploading"
-        ? `מעלה… ${progress}%`
+        ? `מעלה… ${progress}%${attempt > 1 ? ` (ניסיון ${attempt})` : ""}`
         : url
           ? "החלפת תמונה"
           : "בחירת תמונה";
