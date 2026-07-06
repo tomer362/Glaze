@@ -37,6 +37,12 @@ export default async function ColorDetailPage({
             </p>
           )}
         </div>
+        <Link
+          href={`/mixtures/new?colorIds=${color.id}`}
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 sm:ms-auto"
+        >
+          צור ערבוב עם הצבע הזה
+        </Link>
       </div>
 
       <section className="flex flex-col gap-4">

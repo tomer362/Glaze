@@ -29,8 +29,20 @@ function labelFor(c: ColorOption) {
  * amount/unit per color. Serializes the selection into hidden inputs consumed
  * by the createMixture server action.
  */
-export function MixtureColorBuilder({ colors }: { colors: ColorOption[] }) {
-  const [selected, setSelected] = useState<Selected[]>([]);
+export function MixtureColorBuilder({
+  colors,
+  initialColorIds,
+}: {
+  colors: ColorOption[];
+  initialColorIds?: string[];
+}) {
+  const [selected, setSelected] = useState<Selected[]>(() => {
+    const byId = new Map(colors.map((c) => [c.id, c]));
+    return (initialColorIds ?? [])
+      .map((id) => byId.get(id))
+      .filter((c): c is ColorOption => c !== undefined)
+      .map((color) => ({ color, amount: "", unit: "parts" }));
+  });
   const [query, setQuery] = useState("");
   const [recordAmounts, setRecordAmounts] = useState(false);
 
