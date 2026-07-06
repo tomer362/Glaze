@@ -12,15 +12,20 @@ async function decode(
   // applies EXIF orientation), and always reports real dimensions — unlike
   // <img>, which can report width/height 0 for HEIC via an object URL.
   if (typeof createImageBitmap === "function") {
-    try {
-      const bitmap = await createImageBitmap(file, {
-        imageOrientation: "from-image",
-      });
-      if (bitmap.width > 0 && bitmap.height > 0) {
-        return { source: bitmap, width: bitmap.width, height: bitmap.height };
+    // Try with EXIF orientation first; some older WebKit builds reject the
+    // options argument, so retry without it before giving up on the bitmap path.
+    for (const opts of [{ imageOrientation: "from-image" as const }, undefined]) {
+      try {
+        const bitmap = opts
+          ? await createImageBitmap(file, opts)
+          : await createImageBitmap(file);
+        if (bitmap.width > 0 && bitmap.height > 0) {
+          return { source: bitmap, width: bitmap.width, height: bitmap.height };
+        }
+        bitmap.close();
+      } catch {
+        // try the next strategy
       }
-    } catch {
-      // fall through to the <img> path
     }
   }
 
