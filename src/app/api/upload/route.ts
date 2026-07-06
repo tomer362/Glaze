@@ -28,9 +28,9 @@ export async function POST(request: Request): Promise<NextResponse> {
           tokenPayload: JSON.stringify({ userId: session.user.id }),
         };
       },
-      onUploadCompleted: async () => {
-        // Fires via webhook in production. No-op locally (localhost isn't reachable).
-      },
+      // No onUploadCompleted: the client receives the blob URL directly and the
+      // form persists it, so the completion webhook would be dead weight (and
+      // adding it forces a callbackUrl the client flow doesn't need).
     });
 
     return NextResponse.json(jsonResponse);
