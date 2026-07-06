@@ -4,51 +4,83 @@ import { upload } from "@vercel/blob/client";
 import { useState } from "react";
 import Image from "next/image";
 
+/** Decode a file to something canvas can draw, with its dimensions. */
+async function decode(
+  file: File,
+): Promise<{ source: CanvasImageSource; width: number; height: number }> {
+  // createImageBitmap is the most reliable decoder on iOS (handles HEIC and
+  // applies EXIF orientation), and always reports real dimensions — unlike
+  // <img>, which can report width/height 0 for HEIC via an object URL.
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file, {
+        imageOrientation: "from-image",
+      });
+      if (bitmap.width > 0 && bitmap.height > 0) {
+        return { source: bitmap, width: bitmap.width, height: bitmap.height };
+      }
+    } catch {
+      // fall through to the <img> path
+    }
+  }
+
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new window.Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("decode failed"));
+      el.src = url;
+    });
+    const width = img.naturalWidth || img.width;
+    const height = img.naturalHeight || img.height;
+    if (!width || !height) throw new Error("zero dimensions");
+    return { source: img, width, height };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 /**
  * Downscale + re-encode an image on the client before upload.
  *
  * Why: iPhone photos are multi-MB (often HEIC), and uploading them whole over
- * cellular stalls. Drawing to a canvas and exporting JPEG both shrinks the file
- * (fast upload) and converts HEIC → JPEG (iOS Safari decodes HEIC to canvas),
- * which also satisfies the server's allowed content types. Falls back to the
- * original file if anything goes wrong (e.g. a browser that can't decode it).
+ * cellular stalls. Re-encoding to a small JPEG makes the upload near-instant
+ * and converts HEIC → JPEG (satisfying the server's allowed content types).
+ * Returns the smaller of {compressed, original}; falls back to the original if
+ * the browser can't decode the source at all.
  */
 async function compressImage(
   file: File,
-  maxDim = 1600,
-  quality = 0.82,
+  maxDim = 1280,
+  quality = 0.72,
 ): Promise<File> {
   try {
-    const url = URL.createObjectURL(file);
-    try {
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const el = new window.Image();
-        el.onload = () => resolve(el);
-        el.onerror = () => reject(new Error("decode failed"));
-        el.src = url;
-      });
+    const { source, width, height } = await decode(file);
 
-      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
+    const scale = Math.min(1, maxDim / Math.max(width, height));
+    const w = Math.max(1, Math.round(width * scale));
+    const h = Math.max(1, Math.round(height * scale));
 
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("no 2d context");
-      ctx.drawImage(img, 0, 0, w, h);
-
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", quality),
-      );
-      if (!blob) throw new Error("encode failed");
-
-      const base = file.name.replace(/\.[^.]+$/, "") || "image";
-      return new File([blob], `${base}.jpg`, { type: "image/jpeg" });
-    } finally {
-      URL.revokeObjectURL(url);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no 2d context");
+    ctx.drawImage(source, 0, 0, w, h);
+    if (typeof (source as ImageBitmap).close === "function") {
+      (source as ImageBitmap).close();
     }
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality),
+    );
+    if (!blob) throw new Error("encode failed");
+
+    // Always return the JPEG: it's small (≤1280px) and, importantly, an allowed
+    // content type — unlike a HEIC source, which the upload token would reject.
+    const base = file.name.replace(/\.[^.]+$/, "") || "image";
+    return new File([blob], `${base}.jpg`, { type: "image/jpeg" });
   } catch {
     // Could not process (unsupported source, etc.) — upload the original.
     return file;
