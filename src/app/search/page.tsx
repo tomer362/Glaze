@@ -57,15 +57,25 @@ export default async function SearchPage({
           </h2>
 
           {results.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border p-8 text-center text-muted">
-              לא נמצאו ערבובים תואמים.{" "}
-              <Link href="/mixtures/new" className="text-primary hover:underline">
-                תעדו ערבוב חדש
-              </Link>
-              .
-            </p>
+            <div className="animate-fade-in flex flex-col items-center gap-2 rounded-lg border border-dashed border-border p-10 text-center">
+              <span className="text-4xl" aria-hidden>
+                🔍
+              </span>
+              <p className="font-medium">
+                {mode === "all"
+                  ? "אף אחד עדיין לא תיעד ערבוב עם כל הצבעים האלה"
+                  : "אף אחד עדיין לא תיעד ערבוב עם הצבעים האלה"}
+              </p>
+              <p className="text-sm text-muted">
+                אפשר לנסות מצב &quot;לפחות אחד&quot;, או{" "}
+                <Link href="/mixtures/new" className="text-primary hover:underline">
+                  להיות הראשונים לתעד
+                </Link>
+                .
+              </p>
+            </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="animate-fade-in grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {results.map((m) => (
                 <MixtureCard key={m.id} mixture={m} />
               ))}

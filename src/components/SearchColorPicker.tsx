@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ColorSwatch } from "./ColorSwatch";
+import { Spinner } from "./Spinner";
 import type { ColorOption } from "./MixtureColorBuilder";
 
 function labelFor(c: ColorOption) {
@@ -23,6 +24,7 @@ export function SearchColorPicker({
   initialMode: "all" | "any";
 }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [selectedIds, setSelectedIds] = useState<string[]>(initialIds);
   const [mode, setMode] = useState<"all" | "any">(initialMode);
   const [query, setQuery] = useState("");
@@ -42,7 +44,9 @@ export function SearchColorPicker({
     const params = new URLSearchParams();
     if (ids.length) params.set("ids", ids.join(","));
     params.set("mode", m);
-    router.push(`/search?${params.toString()}`);
+    startTransition(() => {
+      router.push(`/search?${params.toString()}`);
+    });
   }
 
   function add(id: string) {
@@ -129,10 +133,11 @@ export function SearchColorPicker({
         <button
           type="button"
           onClick={() => submit(selectedIds, mode)}
-          disabled={selectedIds.length === 0}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
+          disabled={selectedIds.length === 0 || isPending}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
         >
-          חיפוש
+          {isPending && <Spinner className="h-4 w-4" />}
+          {isPending ? "מחפש…" : "חיפוש"}
         </button>
 
         <span className="text-xs text-muted">
@@ -141,6 +146,16 @@ export function SearchColorPicker({
             : "ערבובים שמכילים לפחות אחד מהצבעים"}
         </span>
       </div>
+
+      {isPending && (
+        <div
+          className="flex items-center gap-2 text-sm text-muted"
+          aria-live="polite"
+        >
+          <Spinner className="h-4 w-4" />
+          מחפש ערבובים…
+        </div>
+      )}
     </div>
   );
 }

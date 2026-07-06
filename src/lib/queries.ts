@@ -60,6 +60,7 @@ export type MixtureView = {
   resultHex: string | null;
   hasAmounts: boolean;
   createdAt: Date;
+  createdBy: string;
   authorName: string | null;
   authorImage: string | null;
   components: MixtureComponentView[];
@@ -73,6 +74,7 @@ type MixtureRow = {
   resultHex: string | null;
   hasAmounts: boolean;
   createdAt: Date;
+  createdBy: string;
   authorName: string | null;
   authorImage: string | null;
 };
@@ -128,6 +130,7 @@ const baseMixtureSelect = {
   resultHex: mixtures.resultHex,
   hasAmounts: mixtures.hasAmounts,
   createdAt: mixtures.createdAt,
+  createdBy: mixtures.createdBy,
   authorName: users.name,
   authorImage: users.image,
 };

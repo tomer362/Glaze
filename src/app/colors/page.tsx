@@ -48,7 +48,7 @@ export default async function ColorsPage({
           אין צבעים להצגה.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="animate-fade-in grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {colors.map((c) => (
             <Link
               key={c.id}

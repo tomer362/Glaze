@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getColorById, getMixturesForColor } from "@/lib/queries";
+import { auth } from "@/lib/auth";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { MixtureCard } from "@/components/MixtureCard";
+import { DeleteButton } from "@/components/DeleteButton";
+import { deleteColor } from "@/lib/actions/deletions";
 
 export default async function ColorDetailPage({
   params,
@@ -14,6 +17,9 @@ export default async function ColorDetailPage({
   if (!color) notFound();
 
   const mixtures = await getMixturesForColor(id);
+
+  const session = await auth();
+  const isOwner = !color.isBase && session?.user?.id === color.createdBy;
 
   return (
     <div className="flex flex-col gap-8">
@@ -51,6 +57,16 @@ export default async function ColorDetailPage({
           </div>
         )}
       </section>
+
+      {isOwner && (
+        <section className="border-t border-border pt-4">
+          <DeleteButton
+            action={deleteColor.bind(null, color.id)}
+            label="מחיקת הצבע"
+            confirmText="למחוק את הצבע הזה? הפעולה בלתי הפיכה."
+          />
+        </section>
+      )}
     </div>
   );
 }

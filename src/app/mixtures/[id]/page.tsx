@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getMixtureById } from "@/lib/queries";
+import { auth } from "@/lib/auth";
 import { ColorSwatch } from "@/components/ColorSwatch";
+import { DeleteButton } from "@/components/DeleteButton";
+import { deleteMixture } from "@/lib/actions/deletions";
 
 const unitLabels: Record<string, string> = {
   parts: "חלקים",
@@ -18,6 +21,9 @@ export default async function MixtureDetailPage({
   const { id } = await params;
   const mixture = await getMixtureById(id);
   if (!mixture) notFound();
+
+  const session = await auth();
+  const isOwner = session?.user?.id === mixture.createdBy;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -109,6 +115,16 @@ export default async function MixtureDetailPage({
           ← חיפוש ערבובים לפי צבעים
         </Link>
       </section>
+
+      {isOwner && (
+        <section className="border-t border-border pt-4">
+          <DeleteButton
+            action={deleteMixture.bind(null, mixture.id)}
+            label="מחיקת הערבוב"
+            confirmText="למחוק את הערבוב הזה? הפעולה בלתי הפיכה."
+          />
+        </section>
+      )}
     </div>
   );
 }

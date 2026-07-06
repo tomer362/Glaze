@@ -22,7 +22,7 @@ export default async function MixturesPage() {
           עדיין אין ערבובים. היו הראשונים לתעד!
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="animate-fade-in grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {mixtures.map((m) => (
             <MixtureCard key={m.id} mixture={m} />
           ))}
