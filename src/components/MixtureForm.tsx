@@ -8,7 +8,13 @@ import { MixtureColorBuilder, type ColorOption } from "./MixtureColorBuilder";
 const fieldClass =
   "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary";
 
-export function MixtureForm({ colors }: { colors: ColorOption[] }) {
+export function MixtureForm({
+  colors,
+  initialColorIds,
+}: {
+  colors: ColorOption[];
+  initialColorIds?: string[];
+}) {
   const [state, action, pending] = useActionState(createMixture, {});
 
   return (
@@ -25,7 +31,7 @@ export function MixtureForm({ colors }: { colors: ColorOption[] }) {
         />
       </label>
 
-      <MixtureColorBuilder colors={colors} />
+      <MixtureColorBuilder colors={colors} initialColorIds={initialColorIds} />
 
       <ImageUpload
         name="resultImageUrl"

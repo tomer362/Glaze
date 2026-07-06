@@ -3,7 +3,11 @@ import { getColors } from "@/lib/queries";
 import { MixtureForm } from "@/components/MixtureForm";
 import { SignInCard } from "@/components/SignInCard";
 
-export default async function NewMixturePage() {
+export default async function NewMixturePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ colorIds?: string }>;
+}) {
   const session = await auth();
 
   if (!session?.user) {
@@ -24,6 +28,13 @@ export default async function NewMixturePage() {
     imageUrl: c.imageUrl,
   }));
 
+  // Keep only ids that actually exist in the library.
+  const { colorIds: colorIdsParam } = await searchParams;
+  const valid = new Set(options.map((o) => o.id));
+  const initialColorIds = (colorIdsParam?.split(",") ?? [])
+    .map((s) => s.trim())
+    .filter((s) => valid.has(s));
+
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <div>
@@ -32,7 +43,7 @@ export default async function NewMixturePage() {
           בחרו את הצבעים שערבבתם, העלו תמונה של התוצאה השרופה, ותנו לתוצאה שם.
         </p>
       </div>
-      <MixtureForm colors={options} />
+      <MixtureForm colors={options} initialColorIds={initialColorIds} />
     </div>
   );
 }
