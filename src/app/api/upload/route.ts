@@ -1,43 +1,62 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+const MAX_BYTES = 4 * 1024 * 1024; // 4 MB (under Vercel's 4.5 MB function body limit)
+
 /**
- * Client-upload token endpoint for Vercel Blob.
- *
- * The browser streams the image directly to Blob (bypassing the function body
- * limit) after requesting a short-lived token here. We gate that on an
- * authenticated session and restrict content type + size.
+ * Server-side image upload. The browser POSTs the (already client-compressed,
+ * ~small) file here; this function — running in the same region as the Blob
+ * store — writes it with put(). The browser only has to reach the nearest
+ * Vercel edge, which is far more reliable on weak mobile links than PUTting
+ * directly to a distant blob store from the client SDK.
  */
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: "צריך להתחבר כדי להעלות תמונה" },
+      { status: 401 },
+    );
+  }
+
+  let file: File | null = null;
+  try {
+    const form = await request.formData();
+    const entry = form.get("file");
+    if (entry instanceof File) file = entry;
+  } catch {
+    return NextResponse.json({ error: "בקשה לא תקינה" }, { status: 400 });
+  }
+
+  if (!file) {
+    return NextResponse.json({ error: "לא נבחרה תמונה" }, { status: 400 });
+  }
+  if (!ALLOWED.includes(file.type)) {
+    return NextResponse.json(
+      { error: "פורמט לא נתמך (רק JPG / PNG / WEBP)" },
+      { status: 400 },
+    );
+  }
+  if (file.size > MAX_BYTES) {
+    return NextResponse.json(
+      { error: "התמונה גדולה מדי" },
+      { status: 400 },
+    );
+  }
 
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async () => {
-        const session = await auth();
-        if (!session?.user?.id) {
-          throw new Error("צריך להתחבר כדי להעלות תמונה");
-        }
-        return {
-          allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
-          maximumSizeInBytes: 8 * 1024 * 1024, // 8 MB
-          addRandomSuffix: true,
-          tokenPayload: JSON.stringify({ userId: session.user.id }),
-        };
-      },
-      // No onUploadCompleted: the client receives the blob URL directly and the
-      // form persists it, so the completion webhook would be dead weight (and
-      // adding it forces a callbackUrl the client flow doesn't need).
+    const blob = await put(file.name || "upload.jpg", file, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType: file.type,
     });
-
-    return NextResponse.json(jsonResponse);
+    return NextResponse.json({ url: blob.url });
   } catch (error) {
     return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 400 },
+      { error: (error as Error).message || "שמירת התמונה נכשלה" },
+      { status: 500 },
     );
   }
 }

@@ -1,8 +1,44 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
 import { useState } from "react";
 import Image from "next/image";
+
+/** POST a file to our own /api/upload and resolve the stored public URL. */
+function postImage(
+  file: File,
+  onProgress: (pct: number) => void,
+  timeoutMs = 30_000,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload");
+    xhr.timeout = timeoutMs;
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      let body: { url?: string; error?: string } = {};
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        /* ignore */
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && body.url) {
+        resolve(body.url);
+      } else {
+        reject(new Error(body.error || "ההעלאה נכשלה"));
+      }
+    };
+    xhr.onerror = () => reject(new Error("שגיאת רשת"));
+    xhr.ontimeout = () => reject(new Error("ההעלאה ארכה יותר מדי"));
+
+    const form = new FormData();
+    form.append("file", file);
+    xhr.send(form);
+  });
+}
 
 /** Reject a promise if it doesn't settle within `ms` (so a hung decoder can't freeze the UI). */
 function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
@@ -155,28 +191,19 @@ export function ImageUpload({
       setSizeKb(Math.round(file.size / 1024));
       setStage("uploading");
 
-      // Weak mobile links stall mid-PUT; retry a few times, each time-boxed, so
-      // a transient stall recovers instead of hanging or failing outright.
+      // Weak mobile links stall mid-upload; retry a few times so a transient
+      // stall recovers instead of failing outright.
       const maxAttempts = 3;
       let lastErr: unknown;
       for (let i = 1; i <= maxAttempts; i++) {
         setAttempt(i);
         setProgress(0);
-        const controller = new AbortController();
-        const perTry = setTimeout(() => controller.abort(), 30_000);
         try {
-          const blob = await upload(file.name, file, {
-            access: "public",
-            handleUploadUrl: "/api/upload",
-            abortSignal: controller.signal,
-            onUploadProgress: (ev) => setProgress(Math.round(ev.percentage)),
-          });
-          clearTimeout(perTry);
-          setUrl(blob.url);
+          const uploadedUrl = await postImage(file, (p) => setProgress(p));
+          setUrl(uploadedUrl);
           setStage("idle");
           return;
         } catch (err) {
-          clearTimeout(perTry);
           lastErr = err;
           if (i < maxAttempts) {
             await new Promise((r) => setTimeout(r, 1200 * i)); // backoff
