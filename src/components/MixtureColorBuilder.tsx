@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ColorSwatch } from "./ColorSwatch";
+import { NewColorDialog } from "./NewColorDialog";
 
 export type ColorOption = {
   id: string;
@@ -45,6 +46,10 @@ export function MixtureColorBuilder({
   });
   const [query, setQuery] = useState("");
   const [recordAmounts, setRecordAmounts] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  // Trails `query` by ~600ms; when it catches up, the user has stopped typing.
+  // Used to prompt "save this color?" only after they pause, not per keystroke.
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const selectedIds = useMemo(
     () => new Set(selected.map((s) => s.color.id)),
@@ -58,6 +63,16 @@ export function MixtureColorBuilder({
       .filter((c) => q === "" || labelFor(c).toLowerCase().includes(q))
       .slice(0, 8);
   }, [colors, query, selectedIds]);
+
+  // Debounce: `debouncedQuery` catches up to `query` ~600ms after the last
+  // keystroke, signalling the user has stopped typing.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 600);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const showCreatePrompt =
+    query.trim() !== "" && matches.length === 0 && debouncedQuery === query;
 
   function add(color: ColorOption) {
     setSelected((s) => [...s, { color, amount: "", unit: "parts" }]);
@@ -111,7 +126,34 @@ export function MixtureColorBuilder({
             ))}
           </ul>
         )}
+
+        {showCreatePrompt && (
+          <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-surface p-3 shadow-lg">
+            <p className="text-sm text-muted">
+              לא נמצא צבע בשם ״{query.trim()}״.
+            </p>
+            <button
+              type="button"
+              onClick={() => setDialogOpen(true)}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+            >
+              <span aria-hidden>➕</span>
+              <span>לשמור את הצבע במערכת?</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {dialogOpen && (
+        <NewColorDialog
+          initialName={query.trim()}
+          onClose={() => setDialogOpen(false)}
+          onCreated={(color) => {
+            add(color);
+            setDialogOpen(false);
+          }}
+        />
+      )}
 
       {/* toggle amounts */}
       <label className="flex items-center gap-2 text-sm text-muted">
