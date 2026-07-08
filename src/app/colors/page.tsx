@@ -5,11 +5,14 @@ import { ColorSwatch } from "@/components/ColorSwatch";
 export default async function ColorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ brand?: string }>;
+  searchParams: Promise<{ brand?: string; community?: string }>;
 }) {
-  const { brand } = await searchParams;
+  const { brand, community: communityParam } = await searchParams;
+  const community = communityParam === "1";
   const [colors, brands] = await Promise.all([
-    getColors(brand ? { brand } : undefined),
+    getColors(
+      community ? { community: true } : brand ? { brand } : undefined,
+    ),
     getBrands(),
   ]);
 
@@ -28,9 +31,15 @@ export default async function ColorsPage({
       <div className="flex flex-wrap gap-2 text-sm">
         <Link
           href="/colors"
-          className={`rounded-full border border-border px-3 py-1 ${!brand ? "bg-primary text-primary-foreground" : "bg-surface"}`}
+          className={`rounded-full border border-border px-3 py-1 ${!brand && !community ? "bg-primary text-primary-foreground" : "bg-surface"}`}
         >
           הכל
+        </Link>
+        <Link
+          href="/colors?community=1"
+          className={`rounded-full border border-border px-3 py-1 ${community ? "bg-primary text-primary-foreground" : "bg-surface"}`}
+        >
+          קהילה
         </Link>
         {brands.map((b) => (
           <Link
