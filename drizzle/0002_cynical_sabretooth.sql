@@ -1,0 +1,1 @@
+ALTER TABLE "mixtures" ADD COLUMN "before_image_url" text;

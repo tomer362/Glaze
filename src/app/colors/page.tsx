@@ -5,13 +5,21 @@ import { ColorSwatch } from "@/components/ColorSwatch";
 export default async function ColorsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ brand?: string; community?: string }>;
+  searchParams: Promise<{ brand?: string; community?: string; defaults?: string }>;
 }) {
-  const { brand, community: communityParam } = await searchParams;
+  const { brand, community: communityParam, defaults } = await searchParams;
   const community = communityParam === "1";
+  // Seeded ("from the internet") colors are hidden by default; ?defaults=1 reveals
+  // the full built-in library. Only affects the "All" view — brand/community tabs
+  // keep their own meaning.
+  const showDefaults = defaults === "1";
   const [colors, brands] = await Promise.all([
     getColors(
-      community ? { community: true } : brand ? { brand } : undefined,
+      community
+        ? { community: true }
+        : brand
+          ? { brand }
+          : { hideBase: !showDefaults },
     ),
     getBrands(),
   ]);
@@ -51,6 +59,28 @@ export default async function ColorsPage({
           </Link>
         ))}
       </div>
+
+      {/* Hide the seeded ("from the internet") library colors by default; the
+          toggle reveals them. Only affects the "All" view. */}
+      <Link
+        href={showDefaults ? "/colors" : "/colors?defaults=1"}
+        aria-pressed={!showDefaults}
+        className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm"
+      >
+        <span
+          aria-hidden
+          className={`relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors ${
+            !showDefaults ? "bg-primary" : "bg-border"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+              !showDefaults ? "end-0.5" : "start-0.5"
+            }`}
+          />
+        </span>
+        <span>הסתר צבעי ברירת מחדל</span>
+      </Link>
 
       {colors.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-8 text-center text-muted">

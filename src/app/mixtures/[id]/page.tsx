@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { canEditMixture } from "@/lib/permissions";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { deleteMixture } from "@/lib/actions/deletions";
 
 const unitLabels: Record<string, string> = {
@@ -32,14 +33,20 @@ export default async function MixtureDetailPage({
       <div className="card overflow-hidden">
         <div className="relative aspect-[16/10] w-full bg-background">
           {mixture.resultImageUrl ? (
-            <Image
+            <ImageLightbox
               src={mixture.resultImageUrl}
               alt={mixture.name}
-              fill
-              sizes="(max-width: 768px) 100vw, 768px"
-              className="object-cover"
-              priority
-            />
+              className="absolute inset-0 h-full w-full cursor-zoom-in"
+            >
+              <Image
+                src={mixture.resultImageUrl}
+                alt={mixture.name}
+                fill
+                sizes="(max-width: 768px) 100vw, 768px"
+                className="object-cover"
+                priority
+              />
+            </ImageLightbox>
           ) : (
             <div
               className="h-full w-full"
@@ -74,6 +81,36 @@ export default async function MixtureDetailPage({
           )}
         </div>
       </div>
+
+      {mixture.beforeImageUrl && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-bold">לפני השריפה</h2>
+          <div className="card overflow-hidden">
+            <div className="relative aspect-[16/10] w-full bg-background">
+              <ImageLightbox
+                src={mixture.beforeImageUrl}
+                alt={`${mixture.name} — לפני השריפה`}
+                compareSrc={mixture.resultImageUrl}
+                compareLabel="התוצאה השרופה"
+                className="absolute inset-0 h-full w-full cursor-zoom-in"
+              >
+                <Image
+                  src={mixture.beforeImageUrl}
+                  alt={`${mixture.name} — לפני השריפה`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="object-cover"
+                />
+              </ImageLightbox>
+            </div>
+          </div>
+          {mixture.resultImageUrl && (
+            <p className="text-sm text-muted">
+              החזיקו את התמונה כדי להשוות לתוצאה השרופה.
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">
