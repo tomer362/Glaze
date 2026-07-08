@@ -43,6 +43,7 @@ export default async function EditMixturePage({
           name: mixture.name,
           notes: mixture.notes,
           beforeImageUrl: mixture.beforeImageUrl,
+          beforeHex: mixture.beforeHex,
           resultImageUrl: mixture.resultImageUrl,
           components: mixture.components.map((c) => ({
             glazeColorId: c.glazeColorId,

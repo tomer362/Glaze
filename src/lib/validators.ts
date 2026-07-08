@@ -37,6 +37,7 @@ export const createMixtureSchema = z.object({
   name: z.string().trim().min(1, "חובה להזין שם לתוצאה").max(120),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
   beforeImageUrl: z.string().url().optional().or(z.literal("")),
+  beforeHex: hexColor.optional().or(z.literal("")),
   resultImageUrl: z.string().url("חובה להעלות תמונה של התוצאה"),
   resultHex: hexColor.optional().or(z.literal("")),
   components: z

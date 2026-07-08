@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createMixture, updateMixture } from "@/lib/actions/mixtures";
 import { ImageUpload } from "./ImageUpload";
 import {
@@ -17,6 +17,7 @@ export type MixtureEditData = {
   name: string;
   notes: string | null;
   beforeImageUrl: string | null;
+  beforeHex: string | null;
   resultImageUrl: string | null;
   components: InitialComponent[];
 };
@@ -34,6 +35,12 @@ export function MixtureForm({
   // Editing binds the id and calls updateMixture; creating calls createMixture.
   const action = edit ? updateMixture.bind(null, edit.id) : createMixture;
   const [state, formAction, pending] = useActionState(action, {});
+
+  // Optional "before" color — an alternative to the before photo (image wins if
+  // both are set). Mirrors the hex picker in ColorFormFields.
+  const initialBeforeHex = edit?.beforeHex ?? "";
+  const [useBeforeHex, setUseBeforeHex] = useState(!!initialBeforeHex);
+  const [beforeHex, setBeforeHex] = useState(initialBeforeHex || "#cfc6ba");
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -56,11 +63,37 @@ export function MixtureForm({
         initialComponents={edit?.components}
       />
 
-      <ImageUpload
-        name="beforeImageUrl"
-        label="תמונת הכלי לפני השריפה (לא חובה)"
-        defaultUrl={edit?.beforeImageUrl ?? ""}
-      />
+      <div className="flex flex-col gap-3">
+        <ImageUpload
+          name="beforeImageUrl"
+          label="תמונת הכלי לפני השריפה (לא חובה)"
+          defaultUrl={edit?.beforeImageUrl ?? ""}
+        />
+
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={useBeforeHex}
+              onChange={(e) => setUseBeforeHex(e.target.checked)}
+            />
+            או בחרו צבע &quot;לפני&quot; (אם אין תמונה)
+          </label>
+          {useBeforeHex && (
+            <input
+              type="color"
+              value={beforeHex}
+              onChange={(e) => setBeforeHex(e.target.value)}
+              className="h-10 w-20 cursor-pointer rounded border border-border bg-surface"
+            />
+          )}
+          <input
+            type="hidden"
+            name="beforeHex"
+            value={useBeforeHex ? beforeHex : ""}
+          />
+        </div>
+      </div>
 
       <ImageUpload
         name="resultImageUrl"
