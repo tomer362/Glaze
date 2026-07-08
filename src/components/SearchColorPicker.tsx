@@ -28,6 +28,9 @@ export function SearchColorPicker({
   const [selectedIds, setSelectedIds] = useState<string[]>(initialIds);
   const [mode, setMode] = useState<"all" | "any">(initialMode);
   const [query, setQuery] = useState("");
+  // Focus opens the list even with an empty query, so colors can be browsed
+  // without typing.
+  const [focused, setFocused] = useState(false);
 
   const byId = useMemo(() => new Map(colors.map((c) => [c.id, c])), [colors]);
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -65,10 +68,13 @@ export function SearchColorPicker({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          // Delay so a click on an option registers before the list unmounts.
+          onBlur={() => setTimeout(() => setFocused(false), 120)}
           placeholder="הוספת צבע לחיפוש…"
           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
         />
-        {query.trim() !== "" && matches.length > 0 && (
+        {focused && matches.length > 0 && (
           <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
             {matches.map((c) => (
               <li key={c.id}>

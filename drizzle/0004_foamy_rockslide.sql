@@ -1,0 +1,1 @@
+CREATE INDEX "mix_created_at_idx" ON "mixtures" USING btree ("created_at" DESC NULLS LAST);

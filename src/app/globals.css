@@ -73,6 +73,39 @@ body {
   }
 }
 
+/* Minimalist "working" shimmer for the image-upload thumbnail. A soft sheen
+   sweeps across a muted surface fill — enough to read as "in progress" without
+   a loud spinner or percentage. Unlayered so it wins over Tailwind utilities. */
+@keyframes shimmerSweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.shimmer {
+  background-color: var(--surface);
+  background-image: linear-gradient(
+    110deg,
+    transparent 30%,
+    color-mix(in srgb, var(--muted) 22%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    /* Hold a calm static tint instead of sweeping. */
+    animation: none;
+    background-image: none;
+    background-color: color-mix(in srgb, var(--muted) 12%, var(--surface));
+  }
+}
+
 /* Prevent mobile browsers (iOS Safari / Chrome) from zooming in when a text
    field gains focus. They zoom whenever the control's font-size is < 16px, so
    force 16px on small screens. This unlayered rule overrides Tailwind's

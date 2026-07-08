@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { Spinner } from "./Spinner";
 
 /** POST a file to our own /api/upload and resolve the stored public URL. */
 function postImage(
@@ -164,8 +165,6 @@ export function ImageUpload({
   const [url, setUrl] = useState(defaultUrl);
   const [stage, setStage] = useState<Stage>("idle");
   const [progress, setProgress] = useState(0);
-  const [attempt, setAttempt] = useState(0);
-  const [sizeKb, setSizeKb] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -174,8 +173,6 @@ export function ImageUpload({
 
     setStage("compressing");
     setProgress(0);
-    setAttempt(0);
-    setSizeKb(null);
     setError("");
 
     try {
@@ -191,7 +188,6 @@ export function ImageUpload({
       } catch {
         file = picked;
       }
-      setSizeKb(Math.round(file.size / 1024));
       setStage("uploading");
 
       // Weak mobile links stall mid-upload; retry a few times so a transient
@@ -199,7 +195,6 @@ export function ImageUpload({
       const maxAttempts = 3;
       let lastErr: unknown;
       for (let i = 1; i <= maxAttempts; i++) {
-        setAttempt(i);
         setProgress(0);
         try {
           const uploadedUrl = await postImage(file, (p) => setProgress(p));
@@ -224,14 +219,13 @@ export function ImageUpload({
   }
 
   const busy = stage === "compressing" || stage === "uploading";
-  const buttonLabel =
-    stage === "compressing"
-      ? "מכווץ תמונה…"
-      : stage === "uploading"
-        ? `מעלה… ${progress}%${attempt > 1 ? ` (ניסיון ${attempt})` : ""}`
-        : url
-          ? "החלפת תמונה"
-          : "בחירת תמונה";
+  // Calm, static labels — progress is conveyed by the thumbnail affordance, not
+  // a number in the button.
+  const buttonLabel = busy
+    ? "מעלה…"
+    : url
+      ? "החלפת תמונה"
+      : "בחירת תמונה";
 
   return (
     <div className="flex flex-col gap-2">
@@ -241,21 +235,50 @@ export function ImageUpload({
       </span>
 
       <div className="flex items-center gap-3">
-        {url ? (
-          <Image
-            src={url}
-            alt="תצוגה מקדימה"
-            width={80}
-            height={80}
-            className="h-20 w-20 rounded-lg border border-border object-cover"
-          />
-        ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted">
-            אין תמונה
-          </div>
-        )}
+        {/* 80×80 thumbnail box. While uploading it turns into a minimalist
+            "working" state: a soft shimmer, a small ring, and a hairline
+            progress bar hugging the bottom edge — no percentage. */}
+        <div
+          className="relative h-20 w-20 overflow-hidden rounded-lg"
+          aria-busy={busy}
+          aria-live="polite"
+        >
+          {url && !busy ? (
+            <Image
+              src={url}
+              alt="תצוגה מקדימה"
+              width={80}
+              height={80}
+              className="h-20 w-20 rounded-lg border border-border object-cover"
+            />
+          ) : busy ? (
+            <div className="shimmer flex h-full w-full items-center justify-center rounded-lg border border-border">
+              <Spinner className="h-5 w-5 text-muted/70" />
+              {/* Determinate hairline only while actually uploading; compression
+                  has no real percentage, so the shimmer alone carries it. */}
+              {stage === "uploading" && (
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-border">
+                  <span
+                    className="block h-full bg-primary transition-[width] duration-300 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted">
+              אין תמונה
+            </div>
+          )}
+        </div>
 
-        <label className="cursor-pointer rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium transition hover:bg-background">
+        <label
+          className={`rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium transition ${
+            busy
+              ? "cursor-default opacity-60"
+              : "cursor-pointer hover:bg-background"
+          }`}
+        >
           {buttonLabel}
           <input
             type="file"
@@ -267,9 +290,6 @@ export function ImageUpload({
         </label>
       </div>
 
-      {stage === "uploading" && sizeKb !== null && (
-        <p className="text-xs text-muted">גודל התמונה: {sizeKb}KB</p>
-      )}
       {stage === "error" && <p className="text-sm text-red-600">{error}</p>}
 
       {/* Value consumed by the server action */}

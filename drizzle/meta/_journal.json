@@ -29,6 +29,13 @@
       "when": 1783517307560,
       "tag": "0003_swift_spencer_smythe",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783526134951,
+      "tag": "0004_foamy_rockslide",
+      "breakpoints": true
     }
   ]
 }

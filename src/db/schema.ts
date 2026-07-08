@@ -119,7 +119,11 @@ export const mixtures = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [index("mix_created_by_idx").on(t.createdBy)],
+  (t) => [
+    index("mix_created_by_idx").on(t.createdBy),
+    // Every mixture list orders by desc(createdAt); back that sort with an index.
+    index("mix_created_at_idx").on(t.createdAt.desc()),
+  ],
 );
 
 /** Join table: which colors went into a mixture, with an optional amount. */

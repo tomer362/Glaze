@@ -7,8 +7,45 @@ import {
   type GlazeColor,
 } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 /* ---------------------------------- colors -------------------------------- */
+
+/** The trimmed color shape the client-side pickers actually consume. */
+export type ColorOptionRow = {
+  id: string;
+  name: string;
+  brand: string | null;
+  code: string | null;
+  hex: string | null;
+  imageUrl: string | null;
+};
+
+/**
+ * The full color library, projected to just the 6 fields the mixture/search
+ * pickers need, cached across requests. The whole table is shipped into client
+ * components on /search, /mixtures/new, and the mixture edit page, so trimming
+ * the columns and caching the result (colors change only via the color write
+ * actions, which call revalidateTag("colors")) keeps those pages fast as the
+ * community library grows.
+ */
+export const getColorOptions = unstable_cache(
+  async (): Promise<ColorOptionRow[]> => {
+    return db
+      .select({
+        id: glazeColors.id,
+        name: glazeColors.name,
+        brand: glazeColors.brand,
+        code: glazeColors.code,
+        hex: glazeColors.hex,
+        imageUrl: glazeColors.imageUrl,
+      })
+      .from(glazeColors)
+      .orderBy(glazeColors.brand, glazeColors.name);
+  },
+  ["color-options"],
+  { tags: ["colors"], revalidate: 3600 },
+);
 
 export async function getColors(
   opts?: { brand?: string; community?: boolean; hideBase?: boolean },
@@ -168,15 +205,19 @@ export async function getMixtureById(id: string): Promise<MixtureView | null> {
   return view ?? null;
 }
 
-/** All mixtures that use a given color (for the color detail page). */
-export async function getMixturesForColor(colorId: string): Promise<MixtureView[]> {
+/** Mixtures that use a given color (for the color detail page). */
+export async function getMixturesForColor(
+  colorId: string,
+  limit = 60,
+): Promise<MixtureView[]> {
   const rows = await db
     .selectDistinct(baseMixtureSelect)
     .from(mixtures)
     .innerJoin(mixtureComponents, eq(mixtureComponents.mixtureId, mixtures.id))
     .leftJoin(users, eq(users.id, mixtures.createdBy))
     .where(eq(mixtureComponents.glazeColorId, colorId))
-    .orderBy(desc(mixtures.createdAt));
+    .orderBy(desc(mixtures.createdAt))
+    .limit(limit);
   return attachComponents(rows);
 }
 

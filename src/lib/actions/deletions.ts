@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { mixtures, glazeColors, mixtureComponents } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 export type ActionResult = { error?: string };
@@ -63,5 +63,6 @@ export async function deleteColor(id: string): Promise<ActionResult> {
   await db.delete(glazeColors).where(eq(glazeColors.id, id));
 
   revalidatePath("/colors");
+  revalidateTag("colors", "max");
   redirect("/colors");
 }

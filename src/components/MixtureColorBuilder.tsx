@@ -67,6 +67,9 @@ export function MixtureColorBuilder({
       .map((color) => ({ color, amount: "", unit: "parts" }));
   });
   const [query, setQuery] = useState("");
+  // When the input is focused we open the list even with an empty query, so the
+  // user can browse the available colors without typing.
+  const [focused, setFocused] = useState(false);
   const [recordAmounts, setRecordAmounts] = useState(
     () => initialComponents?.some((c) => c.amount != null) ?? false,
   );
@@ -139,10 +142,13 @@ export function MixtureColorBuilder({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          // Delay so a click on an option registers before the list unmounts.
+          onBlur={() => setTimeout(() => setFocused(false), 120)}
           placeholder="חיפוש צבע להוספה…"
           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
         />
-        {query.trim() !== "" && matches.length > 0 && (
+        {focused && matches.length > 0 && (
           <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
             {matches.map((c) => (
               <li key={c.id}>

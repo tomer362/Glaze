@@ -6,6 +6,10 @@ import { SiteHeader } from "@/components/SiteHeader";
 const heebo = Heebo({
   variable: "--font-heebo",
   subsets: ["hebrew", "latin"],
+  // Only the weights the UI actually uses — avoids shipping the full variable
+  // weight axis. `swap` keeps text visible while the font loads.
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

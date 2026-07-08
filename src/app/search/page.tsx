@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getColors, searchMixtures } from "@/lib/queries";
+import { getColorOptions, searchMixtures } from "@/lib/queries";
 import { SearchColorPicker } from "@/components/SearchColorPicker";
 import { MixtureCard } from "@/components/MixtureCard";
 
@@ -11,15 +11,7 @@ export default async function SearchPage({
   const { ids: idsParam, mode: modeParam } = await searchParams;
   const mode: "all" | "any" = modeParam === "any" ? "any" : "all";
 
-  const colors = await getColors();
-  const options = colors.map((c) => ({
-    id: c.id,
-    name: c.name,
-    brand: c.brand,
-    code: c.code,
-    hex: c.hex,
-    imageUrl: c.imageUrl,
-  }));
+  const options = await getColorOptions();
 
   // Keep only ids that actually exist in the library.
   const valid = new Set(options.map((o) => o.id));
