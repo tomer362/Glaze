@@ -36,6 +36,14 @@ export function MixtureForm({
   const action = edit ? updateMixture.bind(null, edit.id) : createMixture;
   const [state, formAction, pending] = useActionState(action, {});
 
+  // Keep the text fields in React state. React 19 resets the <form> after a
+  // server action returns without redirecting, which would wipe uncontrolled
+  // inputs on a validation error; controlled values survive that re-render, so
+  // the user doesn't lose what they typed. (The color/image/hex fields are
+  // already state-backed and survive for the same reason.)
+  const [name, setName] = useState(edit?.name ?? "");
+  const [notes, setNotes] = useState(edit?.notes ?? "");
+
   // Optional "before" color — an alternative to the before photo (image wins if
   // both are set). Mirrors the hex picker in ColorFormFields.
   const initialBeforeHex = edit?.beforeHex ?? "";
@@ -51,7 +59,8 @@ export function MixtureForm({
         <input
           name="name"
           required
-          defaultValue={edit?.name}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           className={fieldClass}
           placeholder="למשל: ירוק ים עמוק"
         />
@@ -107,7 +116,8 @@ export function MixtureForm({
         <textarea
           name="notes"
           rows={3}
-          defaultValue={edit?.notes ?? ""}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
           className={fieldClass}
           placeholder="טמפרטורה, מספר שכבות, סוג חומר, וכל דבר שיעזור לאחרים…"
         />
