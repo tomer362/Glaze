@@ -8,6 +8,13 @@
       "when": 1783327519064,
       "tag": "0000_petite_toxin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783507093216,
+      "tag": "0001_curious_hydra",
+      "breakpoints": true
     }
   ]
 }

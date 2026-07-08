@@ -1,9 +1,11 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { canEditColor } from "@/lib/permissions";
 import { db } from "@/db";
 import { glazeColors } from "@/db/schema";
-import { createColorSchema } from "@/lib/validators";
+import { eq } from "drizzle-orm";
+import { createColorSchema, updateColorSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ColorOption } from "@/components/MixtureColorBuilder";
@@ -89,4 +91,56 @@ export async function createColorInline(
 
   revalidatePath("/colors");
   return { color: result.color };
+}
+
+/**
+ * Edit an existing color. Allowed for admins (any color, including seeded base
+ * colors — e.g. to add a missing image) and for the color's own creator. The
+ * `id` is bound by the caller, so the signature stays useActionState-friendly.
+ */
+export async function updateColor(
+  id: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "צריך להתחבר כדי לערוך צבע" };
+
+  const [color] = await db
+    .select({ createdBy: glazeColors.createdBy })
+    .from(glazeColors)
+    .where(eq(glazeColors.id, id))
+    .limit(1);
+  if (!color) return { error: "הצבע לא נמצא" };
+  if (!canEditColor(session, color)) {
+    return { error: "אין לך הרשאה לערוך את הצבע הזה" };
+  }
+
+  const str = (k: string) => String(formData.get(k) ?? "");
+  const parsed = updateColorSchema.safeParse({
+    name: str("name"),
+    brand: str("brand"),
+    code: str("code"),
+    hex: str("hex"),
+    imageUrl: str("imageUrl"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "נתונים לא תקינים" };
+  }
+  const d = parsed.data;
+
+  await db
+    .update(glazeColors)
+    .set({
+      name: d.name,
+      brand: d.brand || null,
+      code: d.code || null,
+      hex: d.hex || null,
+      imageUrl: d.imageUrl || null,
+    })
+    .where(eq(glazeColors.id, id));
+
+  revalidatePath("/colors");
+  revalidatePath(`/colors/${id}`);
+  redirect(`/colors/${id}`);
 }

@@ -44,8 +44,13 @@
 | `AUTH_SECRET` | (המחרוזת שקיבלת בצ׳אט) |
 | `AUTH_GOOGLE_ID` | ה-Client ID מ-Google |
 | `AUTH_GOOGLE_SECRET` | ה-Client Secret מ-Google |
+| `ADMIN_EMAILS` | אימיילים של האדמינים, מופרדים בפסיק (למשל `a@gmail.com,b@gmail.com`) |
 
 > `DATABASE_URL` ו-`BLOB_READ_WRITE_TOKEN` כבר הוזרקו אוטומטית בשלבים 2–3.
+
+> **אדמינים:** כל אימייל ב-`ADMIN_EMAILS` הופך אוטומטית לאדמין בפעם הבאה שהוא
+> מתחבר עם Google, ואז יכול לערוך כל צבע/ערבוב ולהוסיף תמונות חסרות. כדי לשנות מי
+> אדמין — עדכנו את המשתנה כאן ו-Redeploy (בלי טרמינל). זה עובד מצוין גם מהטלפון.
 
 ## שלב 6 — פריסה מחדש
 **Deployments → הפריסה האחרונה → ⋯ → Redeploy**.

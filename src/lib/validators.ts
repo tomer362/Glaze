@@ -13,6 +13,11 @@ export const createColorSchema = z.object({
 });
 export type CreateColorInput = z.infer<typeof createColorSchema>;
 
+// Editing takes the same fields as creating (image stays optional, so an
+// existing image can be kept or replaced).
+export const updateColorSchema = createColorSchema;
+export type UpdateColorInput = z.infer<typeof updateColorSchema>;
+
 export const mixtureComponentSchema = z.object({
   glazeColorId: z.string().uuid("צבע לא תקין"),
   amount: z
@@ -38,6 +43,11 @@ export const createMixtureSchema = z.object({
     .min(2, "צריך לבחור לפחות שני צבעים לערבוב"),
 });
 export type CreateMixtureInput = z.infer<typeof createMixtureSchema>;
+
+// Editing reuses the create shape. The edit form pre-fills the existing result
+// image into the hidden field, so the required-URL rule keeps holding.
+export const updateMixtureSchema = createMixtureSchema;
+export type UpdateMixtureInput = z.infer<typeof updateMixtureSchema>;
 
 /** Search: color ids + match mode. */
 export const searchSchema = z.object({

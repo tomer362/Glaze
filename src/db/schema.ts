@@ -24,6 +24,9 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  // "user" (default) or "admin". Admins may edit any color/mixture. Kept in
+  // sync from the ADMIN_EMAILS env var on every sign-in (see src/lib/auth.ts).
+  role: text("role").notNull().default("user"),
 });
 
 export const accounts = pgTable(
