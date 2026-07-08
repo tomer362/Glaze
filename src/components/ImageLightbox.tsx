@@ -12,9 +12,9 @@ function clamp(v: number, lo: number, hi: number) {
 }
 
 /**
- * Full-screen, zoomable image preview (buttons, wheel, and double-tap zoom; drag
- * to pan when zoomed). Mirrors NewColorDialog's portal + Escape + backdrop
- * pattern.
+ * Full-screen, zoomable image preview (buttons, wheel, double-tap, and two-finger
+ * pinch zoom; drag to pan when zoomed). Mirrors NewColorDialog's portal + Escape +
+ * backdrop pattern.
  *
  * Uncontrolled by default: the trigger is whatever you pass as `children`
  * (usually the thumbnail <Image>) and clicking it opens the overlay;
@@ -57,6 +57,10 @@ export function ImageLightbox({
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const panStart = useRef<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
+  // Every active pointer on the stage, keyed by pointerId. One → pan; two → pinch.
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  // Distance + scale captured when the second finger lands, used as the pinch base.
+  const pinchStart = useRef<{ dist: number; scale: number } | null>(null);
 
   const setOpen = useCallback(
     (next: boolean) => {
@@ -67,6 +71,8 @@ export function ImageLightbox({
         dragging.current = false;
         pointerStart.current = null;
         panStart.current = null;
+        pointers.current.clear();
+        pinchStart.current = null;
       }
       if (!isControlled) setOpenState(next);
       onOpenChange?.(next);
@@ -110,7 +116,25 @@ export function ImageLightbox({
     setScale((s) => clamp(s + delta, MIN_SCALE, MAX_SCALE));
   }
 
+  // Distance between the two currently-tracked pointers (pinch only).
+  function pinchDistance() {
+    const pts = Array.from(pointers.current.values());
+    if (pts.length < 2) return 0;
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+
   function onPointerDown(e: React.PointerEvent) {
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.current.size >= 2) {
+      // Second finger down → enter pinch; stop any in-progress single-finger pan.
+      dragging.current = false;
+      pointerStart.current = null;
+      panStart.current = null;
+      pinchStart.current = { dist: pinchDistance(), scale };
+      return;
+    }
+
     if (scale <= 1) return; // panning only makes sense when zoomed in
     (e.target as Element).setPointerCapture?.(e.pointerId);
     pointerStart.current = { x: e.clientX, y: e.clientY };
@@ -119,16 +143,46 @@ export function ImageLightbox({
   }
 
   function onPointerMove(e: React.PointerEvent) {
+    // Keep the tracked position fresh so pinch distance stays accurate.
+    if (pointers.current.has(e.pointerId)) {
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+
+    // Two fingers → pinch zoom (takes precedence over pan).
+    if (pointers.current.size >= 2 && pinchStart.current) {
+      const dist = pinchDistance();
+      if (dist > 0 && pinchStart.current.dist > 0) {
+        const next =
+          pinchStart.current.scale * (dist / pinchStart.current.dist);
+        setScale(clamp(next, MIN_SCALE, MAX_SCALE));
+      }
+      return;
+    }
+
     if (!dragging.current || !pointerStart.current || !panStart.current) return;
     const dx = e.clientX - pointerStart.current.x;
     const dy = e.clientY - pointerStart.current.y;
     setPan({ x: panStart.current.x + dx, y: panStart.current.y + dy });
   }
 
-  function endPointer() {
-    dragging.current = false;
-    pointerStart.current = null;
-    panStart.current = null;
+  function endPointer(e: React.PointerEvent) {
+    pointers.current.delete(e.pointerId);
+
+    if (pointers.current.size < 2) {
+      // Dropped out of pinch. If one finger remains and we're zoomed in, hand
+      // off to a fresh pan anchored at that finger so it doesn't jump.
+      pinchStart.current = null;
+      const remaining = Array.from(pointers.current.entries())[0];
+      if (remaining && scale > 1) {
+        pointerStart.current = { x: remaining[1].x, y: remaining[1].y };
+        panStart.current = { ...pan };
+        dragging.current = true;
+      } else {
+        dragging.current = false;
+        pointerStart.current = null;
+        panStart.current = null;
+      }
+    }
   }
 
   function onDoubleClick() {
