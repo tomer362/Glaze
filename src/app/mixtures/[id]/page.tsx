@@ -25,10 +25,12 @@ export default async function MixtureDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const mixture = await getMixtureById(id);
+  const [mixture, session] = await Promise.all([
+    getMixtureById(id),
+    auth(),
+  ]);
   if (!mixture) notFound();
 
-  const session = await auth();
   const isOwner = session?.user?.id === mixture.createdBy;
   const canEdit = canEditMixture(session, mixture);
 

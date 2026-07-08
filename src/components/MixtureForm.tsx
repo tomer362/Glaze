@@ -73,11 +73,17 @@ export function MixtureForm({
       />
 
       <div className="flex flex-col gap-3">
-        <ImageUpload
-          name="beforeImageUrl"
-          label="תמונת הכלי לפני השריפה (לא חובה)"
-          defaultUrl={edit?.beforeImageUrl ?? ""}
-        />
+        {/* The before photo and the before color are alternatives. Once a
+            before color is chosen we drop the photo input entirely — unmounting
+            removes its hidden beforeImageUrl input from the form, so the color
+            choice wins instead of a stale image URL. */}
+        {!useBeforeHex && (
+          <ImageUpload
+            name="beforeImageUrl"
+            label="תמונת הכלי לפני השריפה (לא חובה)"
+            defaultUrl={edit?.beforeImageUrl ?? ""}
+          />
+        )}
 
         <div className="flex flex-col gap-2">
           <label className="flex items-center gap-2 text-sm text-muted">

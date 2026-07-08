@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { glazeColors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createColorSchema, updateColorSchema } from "@/lib/validators";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ColorOption } from "@/components/MixtureColorBuilder";
 
@@ -75,6 +75,7 @@ export async function createColor(
   if (!result.ok) return { error: result.error };
 
   revalidatePath("/colors");
+  revalidateTag("colors", "max");
   redirect(`/colors/${result.color.id}`);
 }
 
@@ -90,6 +91,7 @@ export async function createColorInline(
   if (!result.ok) return { error: result.error };
 
   revalidatePath("/colors");
+  revalidateTag("colors", "max");
   return { color: result.color };
 }
 
@@ -142,5 +144,6 @@ export async function updateColor(
 
   revalidatePath("/colors");
   revalidatePath(`/colors/${id}`);
+  revalidateTag("colors", "max");
   redirect(`/colors/${id}`);
 }

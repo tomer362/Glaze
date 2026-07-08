@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { canEditMixture } from "@/lib/permissions";
-import { getColors, getMixtureById } from "@/lib/queries";
+import { getColorOptions, getMixtureById } from "@/lib/queries";
 import { MixtureForm } from "@/components/MixtureForm";
 
 export default async function EditMixturePage({
@@ -11,21 +11,14 @@ export default async function EditMixturePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const mixture = await getMixtureById(id);
+  // These three don't depend on each other — fetch them together.
+  const [mixture, session, options] = await Promise.all([
+    getMixtureById(id),
+    auth(),
+    getColorOptions(),
+  ]);
   if (!mixture) notFound();
-
-  const session = await auth();
   if (!canEditMixture(session, mixture)) notFound();
-
-  const colors = await getColors();
-  const options = colors.map((c) => ({
-    id: c.id,
-    name: c.name,
-    brand: c.brand,
-    code: c.code,
-    hex: c.hex,
-    imageUrl: c.imageUrl,
-  }));
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">

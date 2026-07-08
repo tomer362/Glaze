@@ -14,12 +14,14 @@ export default async function ColorDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const color = await getColorById(id);
+  // None of these depend on each other — run them concurrently.
+  const [color, mixtures, session] = await Promise.all([
+    getColorById(id),
+    getMixturesForColor(id),
+    auth(),
+  ]);
   if (!color) notFound();
 
-  const mixtures = await getMixturesForColor(id);
-
-  const session = await auth();
   const isOwner = !color.isBase && session?.user?.id === color.createdBy;
   const canEdit = canEditColor(session, color);
 
