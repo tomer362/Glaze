@@ -26,7 +26,7 @@ export default async function ColorDetailPage({
   return (
     <div className="flex flex-col gap-8">
       <div className="card flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center">
-        <ColorSwatch color={color} size="lg" />
+        <ColorSwatch color={color} size="lg" zoomable />
         <div>
           <h1 className="text-2xl font-bold">{color.name}</h1>
           <p className="mt-1 text-muted">

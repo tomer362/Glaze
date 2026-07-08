@@ -29,6 +29,7 @@ export async function createMixture(
   const parsed = createMixtureSchema.safeParse({
     name: str("name"),
     notes: str("notes"),
+    beforeImageUrl: str("beforeImageUrl"),
     resultImageUrl: str("resultImageUrl"),
     resultHex: str("resultHex"),
     components: rawComponents,
@@ -52,6 +53,7 @@ export async function createMixture(
       .values({
         name: d.name,
         notes: d.notes || null,
+        beforeImageUrl: d.beforeImageUrl || null,
         resultImageUrl: d.resultImageUrl,
         resultHex: d.resultHex || null,
         hasAmounts,
@@ -113,6 +115,7 @@ export async function updateMixture(
   const parsed = updateMixtureSchema.safeParse({
     name: str("name"),
     notes: str("notes"),
+    beforeImageUrl: str("beforeImageUrl"),
     resultImageUrl: str("resultImageUrl"),
     resultHex: str("resultHex"),
     components: rawComponents,
@@ -135,6 +138,7 @@ export async function updateMixture(
       .set({
         name: d.name,
         notes: d.notes || null,
+        beforeImageUrl: d.beforeImageUrl || null,
         resultImageUrl: d.resultImageUrl,
         resultHex: d.resultHex || null,
         hasAmounts,

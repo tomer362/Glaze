@@ -16,6 +16,7 @@ export type MixtureEditData = {
   id: string;
   name: string;
   notes: string | null;
+  beforeImageUrl: string | null;
   resultImageUrl: string | null;
   components: InitialComponent[];
 };
@@ -53,6 +54,12 @@ export function MixtureForm({
         colors={colors}
         initialColorIds={initialColorIds}
         initialComponents={edit?.components}
+      />
+
+      <ImageUpload
+        name="beforeImageUrl"
+        label="תמונת הכלי לפני השריפה (לא חובה)"
+        defaultUrl={edit?.beforeImageUrl ?? ""}
       />
 
       <ImageUpload

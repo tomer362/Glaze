@@ -11,11 +11,12 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 /* ---------------------------------- colors -------------------------------- */
 
 export async function getColors(
-  opts?: { brand?: string; community?: boolean },
+  opts?: { brand?: string; community?: boolean; hideBase?: boolean },
 ): Promise<GlazeColor[]> {
   const conditions = [];
   if (opts?.brand) conditions.push(eq(glazeColors.brand, opts.brand));
   if (opts?.community) conditions.push(eq(glazeColors.isBase, false));
+  if (opts?.hideBase) conditions.push(eq(glazeColors.isBase, false));
   const where = conditions.length ? and(...conditions) : undefined;
   return db
     .select()
@@ -61,6 +62,7 @@ export type MixtureView = {
   id: string;
   name: string;
   notes: string | null;
+  beforeImageUrl: string | null;
   resultImageUrl: string | null;
   resultHex: string | null;
   hasAmounts: boolean;
@@ -75,6 +77,7 @@ type MixtureRow = {
   id: string;
   name: string;
   notes: string | null;
+  beforeImageUrl: string | null;
   resultImageUrl: string | null;
   resultHex: string | null;
   hasAmounts: boolean;
@@ -131,6 +134,7 @@ const baseMixtureSelect = {
   id: mixtures.id,
   name: mixtures.name,
   notes: mixtures.notes,
+  beforeImageUrl: mixtures.beforeImageUrl,
   resultImageUrl: mixtures.resultImageUrl,
   resultHex: mixtures.resultHex,
   hasAmounts: mixtures.hasAmounts,

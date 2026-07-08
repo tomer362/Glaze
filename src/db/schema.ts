@@ -109,6 +109,7 @@ export const mixtures = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     notes: text("notes"),
+    beforeImageUrl: text("before_image_url"), // optional photo of the raw vessel before firing (Blob)
     resultImageUrl: text("result_image_url"), // fired result photo (Blob)
     resultHex: text("result_hex"), // optional swatch of the result
     hasAmounts: boolean("has_amounts").notNull().default(false), // did the user record ratios?
