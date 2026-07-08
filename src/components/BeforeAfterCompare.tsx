@@ -144,6 +144,11 @@ export function BeforeAfterCompare({
         className={`relative w-full select-none touch-pan-y bg-background ${aspectClassName} ${
           primaryIsImage ? "cursor-zoom-in" : canPeek ? "cursor-pointer" : ""
         }`}
+        // Press-and-hold must not open the browser's image callout ("open in
+        // new tab"): suppress the contextmenu event (Chrome/Android) and the
+        // iOS Safari touch callout, which is a separate mechanism.
+        style={{ WebkitTouchCallout: "none" }}
+        onContextMenu={(e) => e.preventDefault()}
         role={primaryIsImage ? "button" : undefined}
         tabIndex={primaryIsImage ? 0 : undefined}
         aria-label={primaryIsImage ? `הגדלת התמונה: ${primary.alt}` : undefined}
