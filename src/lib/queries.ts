@@ -6,12 +6,17 @@ import {
   users,
   type GlazeColor,
 } from "@/db/schema";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 /* ---------------------------------- colors -------------------------------- */
 
-export async function getColors(opts?: { brand?: string }): Promise<GlazeColor[]> {
-  const where = opts?.brand ? eq(glazeColors.brand, opts.brand) : undefined;
+export async function getColors(
+  opts?: { brand?: string; community?: boolean },
+): Promise<GlazeColor[]> {
+  const conditions = [];
+  if (opts?.brand) conditions.push(eq(glazeColors.brand, opts.brand));
+  if (opts?.community) conditions.push(eq(glazeColors.isBase, false));
+  const where = conditions.length ? and(...conditions) : undefined;
   return db
     .select()
     .from(glazeColors)
