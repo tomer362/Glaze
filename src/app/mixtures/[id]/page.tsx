@@ -109,19 +109,6 @@ export default async function MixtureDetailPage({
         </div>
       </div>
 
-      {hasBefore && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold">לפני השריפה</h2>
-          <div className="card overflow-hidden">
-            <BeforeAfterCompare
-              primary={beforeFace}
-              peek={resultFace}
-              peekLabel="התוצאה השרופה"
-            />
-          </div>
-        </section>
-      )}
-
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-bold">
           הצבעים בערבוב

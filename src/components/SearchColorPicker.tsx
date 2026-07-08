@@ -6,6 +6,10 @@ import { ColorSwatch } from "./ColorSwatch";
 import { Spinner } from "./Spinner";
 import type { ColorOption } from "./MixtureColorBuilder";
 
+// How many matches to show at first, and how many more to reveal each time the
+// list is scrolled near the bottom (smart/lazy loading).
+const BATCH = 20;
+
 function labelFor(c: ColorOption) {
   return [c.brand, c.code, c.name].filter(Boolean).join(" · ");
 }
@@ -39,9 +43,29 @@ export function SearchColorPicker({
     const q = query.trim().toLowerCase();
     return colors
       .filter((c) => !selectedSet.has(c.id))
-      .filter((c) => q === "" || labelFor(c).toLowerCase().includes(q))
-      .slice(0, 8);
+      .filter((c) => q === "" || labelFor(c).toLowerCase().includes(q));
   }, [colors, query, selectedSet]);
+
+  // Smart loading: render only the first `visibleCount` matches, growing as the
+  // list is scrolled. Reset to the first batch whenever the query changes
+  // (adjusting state during render, per the React "you might not need an
+  // effect" guidance).
+  const [visibleCount, setVisibleCount] = useState(BATCH);
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (query !== prevQuery) {
+    setPrevQuery(query);
+    setVisibleCount(BATCH);
+  }
+
+  function onListScroll(e: React.UIEvent<HTMLUListElement>) {
+    const el = e.currentTarget;
+    if (
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 80 &&
+      visibleCount < matches.length
+    ) {
+      setVisibleCount((n) => n + BATCH);
+    }
+  }
 
   function submit(ids: string[], m: "all" | "any") {
     const params = new URLSearchParams();
@@ -75,8 +99,11 @@ export function SearchColorPicker({
           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
         />
         {focused && matches.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
-            {matches.map((c) => (
+          <ul
+            onScroll={onListScroll}
+            className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface shadow-lg"
+          >
+            {matches.slice(0, visibleCount).map((c) => (
               <li key={c.id}>
                 <button
                   type="button"
