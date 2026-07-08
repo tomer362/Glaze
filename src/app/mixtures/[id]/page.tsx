@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getMixtureById } from "@/lib/queries";
 import { auth } from "@/lib/auth";
+import { canEditMixture } from "@/lib/permissions";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { DeleteButton } from "@/components/DeleteButton";
 import { deleteMixture } from "@/lib/actions/deletions";
@@ -24,6 +25,7 @@ export default async function MixtureDetailPage({
 
   const session = await auth();
   const isOwner = session?.user?.id === mixture.createdBy;
+  const canEdit = canEditMixture(session, mixture);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -116,13 +118,21 @@ export default async function MixtureDetailPage({
         </Link>
       </section>
 
-      {isOwner && (
-        <section className="border-t border-border pt-4">
-          <DeleteButton
-            action={deleteMixture.bind(null, mixture.id)}
-            label="מחיקת הערבוב"
-            confirmText="למחוק את הערבוב הזה? הפעולה בלתי הפיכה."
-          />
+      {canEdit && (
+        <section className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          <Link
+            href={`/mixtures/${mixture.id}/edit`}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-background"
+          >
+            עריכת הערבוב
+          </Link>
+          {isOwner && (
+            <DeleteButton
+              action={deleteMixture.bind(null, mixture.id)}
+              label="מחיקת הערבוב"
+              confirmText="למחוק את הערבוב הזה? הפעולה בלתי הפיכה."
+            />
+          )}
         </section>
       )}
     </div>

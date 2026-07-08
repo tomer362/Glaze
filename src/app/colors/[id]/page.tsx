@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getColorById, getMixturesForColor } from "@/lib/queries";
 import { auth } from "@/lib/auth";
+import { canEditColor } from "@/lib/permissions";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { MixtureCard } from "@/components/MixtureCard";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -20,6 +21,7 @@ export default async function ColorDetailPage({
 
   const session = await auth();
   const isOwner = !color.isBase && session?.user?.id === color.createdBy;
+  const canEdit = canEditColor(session, color);
 
   return (
     <div className="flex flex-col gap-8">
@@ -37,12 +39,22 @@ export default async function ColorDetailPage({
             </p>
           )}
         </div>
-        <Link
-          href={`/mixtures/new?colorIds=${color.id}`}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 sm:ms-auto"
-        >
-          צור ערבוב עם הצבע הזה
-        </Link>
+        <div className="flex flex-wrap items-center gap-2 sm:ms-auto">
+          {canEdit && (
+            <Link
+              href={`/colors/${color.id}/edit`}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-background"
+            >
+              עריכה
+            </Link>
+          )}
+          <Link
+            href={`/mixtures/new?colorIds=${color.id}`}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          >
+            צור ערבוב עם הצבע הזה
+          </Link>
+        </div>
       </div>
 
       <section className="flex flex-col gap-4">

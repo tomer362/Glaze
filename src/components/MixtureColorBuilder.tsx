@@ -30,22 +30,46 @@ function labelFor(c: ColorOption) {
  * amount/unit per color. Serializes the selection into hidden inputs consumed
  * by the createMixture server action.
  */
+export type InitialComponent = {
+  glazeColorId: string;
+  amount: number | null;
+  unit: string | null;
+};
+
 export function MixtureColorBuilder({
   colors,
   initialColorIds,
+  initialComponents,
 }: {
   colors: ColorOption[];
   initialColorIds?: string[];
+  /** Pre-fill the builder for editing: colors with their recorded amount/unit. */
+  initialComponents?: InitialComponent[];
 }) {
   const [selected, setSelected] = useState<Selected[]>(() => {
     const byId = new Map(colors.map((c) => [c.id, c]));
+    if (initialComponents && initialComponents.length > 0) {
+      return initialComponents
+        .map((comp) => {
+          const color = byId.get(comp.glazeColorId);
+          if (!color) return undefined;
+          return {
+            color,
+            amount: comp.amount != null ? String(comp.amount) : "",
+            unit: comp.unit ?? "parts",
+          };
+        })
+        .filter((s): s is Selected => s !== undefined);
+    }
     return (initialColorIds ?? [])
       .map((id) => byId.get(id))
       .filter((c): c is ColorOption => c !== undefined)
       .map((color) => ({ color, amount: "", unit: "parts" }));
   });
   const [query, setQuery] = useState("");
-  const [recordAmounts, setRecordAmounts] = useState(false);
+  const [recordAmounts, setRecordAmounts] = useState(
+    () => initialComponents?.some((c) => c.amount != null) ?? false,
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
   // Trails `query` by ~600ms; when it catches up, the user has stopped typing.
   // Used to prompt "save this color?" only after they pause, not per keystroke.

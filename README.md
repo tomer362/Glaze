@@ -38,7 +38,14 @@ _A community web app for documenting ceramic glaze color mixes._
    AUTH_GOOGLE_ID=…         # Google Cloud Console
    AUTH_GOOGLE_SECRET=…
    BLOB_READ_WRITE_TOKEN=…  # רק לפרודקשן / העלאת תמונות
+   ADMIN_EMAILS=…           # אימיילים של אדמינים, מופרדים בפסיק (עריכת צבעים/ערבובים)
    ```
+
+   > **אדמינים:** `ADMIN_EMAILS` הוא רשימת אימיילים (של חשבונות Google) מופרדת בפסיק.
+   > כל אימייל ברשימה מקודם אוטומטית ל-role="admin" בכל התחברות, ואז יכול לערוך
+   > כל צבע/ערבוב (כולל להוסיף תמונה חסרה). כדי לנהל אדמינים אחרי פריסה — עדכנו את
+   > המשתנה ב-Vercel ובצעו Redeploy; אין צורך בטרמינל. (משתמש רגיל עדיין יכול לערוך
+   > את מה שהוא עצמו יצר.)
 
 3. **מסד הנתונים**
    ```bash
@@ -66,8 +73,8 @@ _A community web app for documenting ceramic glaze color mixes._
 4. **Google OAuth** (Google Cloud Console → OAuth client):
    - Authorized redirect URI: `https://<your-app>.vercel.app/api/auth/callback/google`
    - עבור scopes בסיסיים (`email`, `profile`) אין צורך באימות של Google — פרסמו כ-"In production".
-5. **משתני סביבה** ב-Vercel: `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`
-   (ה-DB וה-Blob מוזרקים אוטומטית).
+5. **משתני סביבה** ב-Vercel: `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`,
+   `ADMIN_EMAILS` (ה-DB וה-Blob מוזרקים אוטומטית).
 6. **Migrations** — הריצו migrations מול ה-DB של Vercel פעם אחת
    (`vercel env pull .env.local` ואז `npm run db:migrate && npm run db:seed`).
 

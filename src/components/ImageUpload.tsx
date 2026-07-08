@@ -153,12 +153,15 @@ export function ImageUpload({
   name,
   label,
   required = false,
+  defaultUrl = "",
 }: {
   name: string;
   label: string;
   required?: boolean;
+  /** Existing image to show and keep when editing (unless the user replaces it). */
+  defaultUrl?: string;
 }) {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(defaultUrl);
   const [stage, setStage] = useState<Stage>("idle");
   const [progress, setProgress] = useState(0);
   const [attempt, setAttempt] = useState(0);
