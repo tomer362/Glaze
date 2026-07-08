@@ -42,7 +42,7 @@ export const createMixtureSchema = z.object({
   resultHex: hexColor.optional().or(z.literal("")),
   components: z
     .array(mixtureComponentSchema)
-    .min(2, "צריך לבחור לפחות שני צבעים לערבוב"),
+    .min(1, "צריך לבחור לפחות צבע אחד"),
 });
 export type CreateMixtureInput = z.infer<typeof createMixtureSchema>;
 

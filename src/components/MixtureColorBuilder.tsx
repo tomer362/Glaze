@@ -112,11 +112,19 @@ export function MixtureColorBuilder({
   }
 
   const componentsPayload = JSON.stringify(
-    selected.map((s) => ({
-      glazeColorId: s.color.id,
-      amount: recordAmounts && s.amount !== "" ? Number(s.amount) : null,
-      unit: recordAmounts ? s.unit : null,
-    })),
+    selected.map((s) => {
+      // Only record a positive amount; anything else (blank, 0 from the slider
+      // resting at its start, negatives) counts as "no amount recorded" — the
+      // validator rejects non-positive numbers.
+      const n = Number(s.amount);
+      const amount =
+        recordAmounts && s.amount !== "" && n > 0 ? n : null;
+      return {
+        glazeColorId: s.color.id,
+        amount,
+        unit: recordAmounts ? s.unit : null,
+      };
+    }),
   );
 
   return (
@@ -192,7 +200,7 @@ export function MixtureColorBuilder({
       {/* selected list */}
       {selected.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-3 text-sm text-muted">
-          עדיין לא נבחרו צבעים. צריך לפחות שניים.
+          עדיין לא נבחרו צבעים. צריך לפחות אחד.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -205,17 +213,39 @@ export function MixtureColorBuilder({
               <span className="flex-1 text-sm">{labelFor(s.color)}</span>
               {recordAmounts && (
                 <>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={s.amount}
-                    onChange={(e) =>
-                      update(s.color.id, { amount: e.target.value })
-                    }
-                    placeholder="כמות"
-                    className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary"
-                  />
+                  {s.unit === "%" ? (
+                    // Percent → drag a slider (0–100). Clearer than typing, and
+                    // the value is still stored as a plain number string.
+                    <div className="flex flex-1 items-center gap-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={s.amount === "" ? 0 : s.amount}
+                        onChange={(e) =>
+                          update(s.color.id, { amount: e.target.value })
+                        }
+                        className="flex-1 accent-primary"
+                        aria-label="אחוז"
+                      />
+                      <span className="w-10 text-end text-sm tabular-nums text-muted">
+                        {s.amount === "" ? 0 : s.amount}%
+                      </span>
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={s.amount}
+                      onChange={(e) =>
+                        update(s.color.id, { amount: e.target.value })
+                      }
+                      placeholder="כמות"
+                      className="w-20 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary"
+                    />
+                  )}
                   <select
                     value={s.unit}
                     onChange={(e) => update(s.color.id, { unit: e.target.value })}
