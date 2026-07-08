@@ -6,69 +6,77 @@ import Image from "next/image";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
-const HOLD_MS = 250; // press-and-hold threshold before the before→after compare kicks in
-const MOVE_CANCEL_PX = 10; // finger/mouse movement that cancels a pending hold
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, v));
 }
 
 /**
- * Click any image to open a full-screen, zoomable preview (buttons, wheel, and
- * double-tap zoom; drag to pan when zoomed). Mirrors NewColorDialog's portal +
- * Escape + backdrop pattern.
+ * Full-screen, zoomable image preview (buttons, wheel, and double-tap zoom; drag
+ * to pan when zoomed). Mirrors NewColorDialog's portal + Escape + backdrop
+ * pattern.
  *
- * When `compareSrc` is given (the mixture "before" photo passing its fired
- * `resultImageUrl`), a press-and-hold at default zoom temporarily swaps to the
- * compare image and reverts on release — a quick before→after comparison.
+ * Uncontrolled by default: the trigger is whatever you pass as `children`
+ * (usually the thumbnail <Image>) and clicking it opens the overlay;
+ * `className` styles the button wrapper around it.
  *
- * The trigger is whatever you pass as `children` (usually the thumbnail
- * <Image>); `className` styles the button wrapper around it.
+ * Optionally controllable: pass `open`/`onOpenChange` to drive it from a parent
+ * (e.g. BeforeAfterCompare opens it on a tap), and `hideTrigger` to skip the
+ * built-in button when the parent already supplies its own trigger element.
+ *
+ * The before→after press-and-hold compare used to live here; it now lives in
+ * BeforeAfterCompare so it can work inline on the preview card.
  */
 export function ImageLightbox({
   src,
   alt,
-  compareSrc,
-  compareLabel,
   className,
   children,
+  open: openProp,
+  onOpenChange,
+  hideTrigger,
 }: {
   src: string;
   alt: string;
-  /** Optional image shown while pressing-and-holding (before→after compare). */
-  compareSrc?: string | null;
-  compareLabel?: string;
   className?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  /** Controlled open state. When omitted, the component manages its own. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Skip the built-in trigger button (the parent opens it via `open`). */
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const [openState, setOpenState] = useState(false);
+  const open = isControlled ? openProp : openState;
+
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [comparing, setComparing] = useState(false);
 
   const stageRef = useRef<HTMLDivElement>(null);
-  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const panStart = useRef<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
 
-  const reset = useCallback(() => {
-    setScale(1);
-    setPan({ x: 0, y: 0 });
-    setComparing(false);
-    dragging.current = false;
-    pointerStart.current = null;
-    panStart.current = null;
-    if (holdTimer.current) {
-      clearTimeout(holdTimer.current);
-      holdTimer.current = null;
-    }
-  }, []);
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        // Reset zoom/pan on close so the next open starts fresh.
+        setScale(1);
+        setPan({ x: 0, y: 0 });
+        dragging.current = false;
+        pointerStart.current = null;
+        panStart.current = null;
+      }
+      if (!isControlled) setOpenState(next);
+      onOpenChange?.(next);
+    },
+    [isControlled, onOpenChange],
+  );
 
   const close = useCallback(() => {
     setOpen(false);
-    reset();
-  }, [reset]);
+  }, [setOpen]);
 
   // Escape to close + lock body scroll while the overlay is open.
   useEffect(() => {
@@ -103,67 +111,45 @@ export function ImageLightbox({
   }
 
   function onPointerDown(e: React.PointerEvent) {
+    if (scale <= 1) return; // panning only makes sense when zoomed in
     (e.target as Element).setPointerCapture?.(e.pointerId);
     pointerStart.current = { x: e.clientX, y: e.clientY };
-
-    if (scale > 1) {
-      // Zoomed in → this press starts a pan.
-      dragging.current = true;
-      panStart.current = { ...pan };
-    } else if (compareSrc) {
-      // At 1× with a compare image → arm the hold-to-compare gesture.
-      holdTimer.current = setTimeout(() => setComparing(true), HOLD_MS);
-    }
+    dragging.current = true;
+    panStart.current = { ...pan };
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!pointerStart.current) return;
+    if (!dragging.current || !pointerStart.current || !panStart.current) return;
     const dx = e.clientX - pointerStart.current.x;
     const dy = e.clientY - pointerStart.current.y;
-
-    if (dragging.current && panStart.current) {
-      setPan({ x: panStart.current.x + dx, y: panStart.current.y + dy });
-      return;
-    }
-    // A real move means it wasn't a static hold — cancel a pending compare.
-    if (
-      holdTimer.current &&
-      Math.hypot(dx, dy) > MOVE_CANCEL_PX
-    ) {
-      clearTimeout(holdTimer.current);
-      holdTimer.current = null;
-    }
+    setPan({ x: panStart.current.x + dx, y: panStart.current.y + dy });
   }
 
   function endPointer() {
     dragging.current = false;
     pointerStart.current = null;
     panStart.current = null;
-    if (holdTimer.current) {
-      clearTimeout(holdTimer.current);
-      holdTimer.current = null;
-    }
-    if (comparing) setComparing(false);
   }
 
   function onDoubleClick() {
     setScale((s) => (s > 1 ? 1 : 2));
   }
 
-  const current = comparing && compareSrc ? compareSrc : src;
   // Pan only applies when zoomed in; at 1× the image stays centered.
   const applied = scale > 1 ? pan : { x: 0, y: 0 };
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={`הגדלת התמונה: ${alt}`}
-        className={className}
-      >
-        {children}
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={`הגדלת התמונה: ${alt}`}
+          className={className}
+        >
+          {children}
+        </button>
+      )}
 
       {open &&
         typeof document !== "undefined" &&
@@ -206,7 +192,7 @@ export function ImageLightbox({
               </button>
             </div>
 
-            {/* Zoom / pan / compare stage */}
+            {/* Zoom / pan stage */}
             <div
               ref={stageRef}
               className="relative h-[85vh] w-full max-w-4xl touch-none select-none overflow-hidden"
@@ -226,7 +212,7 @@ export function ImageLightbox({
                 }}
               >
                 <Image
-                  src={current}
+                  src={src}
                   alt={alt}
                   fill
                   sizes="100vw"
@@ -236,20 +222,6 @@ export function ImageLightbox({
                 />
               </div>
             </div>
-
-            {/* Compare hint */}
-            {compareSrc && (
-              <div
-                className="absolute inset-x-0 bottom-0 flex justify-center p-4"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="rounded-full bg-white/15 px-4 py-1.5 text-sm text-white">
-                  {comparing
-                    ? compareLabel ?? "התוצאה"
-                    : `החזק להשוואה${compareLabel ? ` עם ${compareLabel}` : ""}`}
-                </span>
-              </div>
-            )}
           </div>,
           document.body,
         )}

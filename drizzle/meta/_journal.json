@@ -22,6 +22,13 @@
       "when": 1783515391402,
       "tag": "0002_cynical_sabretooth",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783517307560,
+      "tag": "0003_swift_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

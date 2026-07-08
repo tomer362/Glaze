@@ -7,6 +7,10 @@ import { canEditMixture } from "@/lib/permissions";
 import { ColorSwatch } from "@/components/ColorSwatch";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import {
+  BeforeAfterCompare,
+  type CompareFace,
+} from "@/components/BeforeAfterCompare";
 import { deleteMixture } from "@/lib/actions/deletions";
 
 const unitLabels: Record<string, string> = {
@@ -28,32 +32,53 @@ export default async function MixtureDetailPage({
   const isOwner = session?.user?.id === mixture.createdBy;
   const canEdit = canEditMixture(session, mixture);
 
+  // Two sides of the before/after compare. Each may be a photo or a color.
+  const resultFace: CompareFace = {
+    imageUrl: mixture.resultImageUrl,
+    hex: mixture.resultHex,
+    alt: mixture.name,
+  };
+  const beforeFace: CompareFace = {
+    imageUrl: mixture.beforeImageUrl,
+    hex: mixture.beforeHex,
+    alt: `${mixture.name} — לפני השריפה`,
+  };
+  const hasBefore = !!(mixture.beforeImageUrl || mixture.beforeHex);
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <div className="card overflow-hidden">
-        <div className="relative aspect-[16/10] w-full bg-background">
-          {mixture.resultImageUrl ? (
-            <ImageLightbox
-              src={mixture.resultImageUrl}
-              alt={mixture.name}
-              className="absolute inset-0 h-full w-full cursor-zoom-in"
-            >
-              <Image
+        {hasBefore ? (
+          <BeforeAfterCompare
+            primary={resultFace}
+            peek={beforeFace}
+            peekLabel="הכלי לפני השריפה"
+          />
+        ) : (
+          <div className="relative aspect-[16/10] w-full bg-background">
+            {mixture.resultImageUrl ? (
+              <ImageLightbox
                 src={mixture.resultImageUrl}
                 alt={mixture.name}
-                fill
-                sizes="(max-width: 768px) 100vw, 768px"
-                className="object-cover"
-                priority
+                className="absolute inset-0 h-full w-full cursor-zoom-in"
+              >
+                <Image
+                  src={mixture.resultImageUrl}
+                  alt={mixture.name}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="object-cover"
+                  priority
+                />
+              </ImageLightbox>
+            ) : (
+              <div
+                className="h-full w-full"
+                style={{ backgroundColor: mixture.resultHex ?? "#cfc6ba" }}
               />
-            </ImageLightbox>
-          ) : (
-            <div
-              className="h-full w-full"
-              style={{ backgroundColor: mixture.resultHex ?? "#cfc6ba" }}
-            />
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col gap-4 p-5">
           <div className="flex items-center justify-between gap-3">
@@ -82,33 +107,16 @@ export default async function MixtureDetailPage({
         </div>
       </div>
 
-      {mixture.beforeImageUrl && (
+      {hasBefore && (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-bold">לפני השריפה</h2>
           <div className="card overflow-hidden">
-            <div className="relative aspect-[16/10] w-full bg-background">
-              <ImageLightbox
-                src={mixture.beforeImageUrl}
-                alt={`${mixture.name} — לפני השריפה`}
-                compareSrc={mixture.resultImageUrl}
-                compareLabel="התוצאה השרופה"
-                className="absolute inset-0 h-full w-full cursor-zoom-in"
-              >
-                <Image
-                  src={mixture.beforeImageUrl}
-                  alt={`${mixture.name} — לפני השריפה`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 768px"
-                  className="object-cover"
-                />
-              </ImageLightbox>
-            </div>
+            <BeforeAfterCompare
+              primary={beforeFace}
+              peek={resultFace}
+              peekLabel="התוצאה השרופה"
+            />
           </div>
-          {mixture.resultImageUrl && (
-            <p className="text-sm text-muted">
-              החזיקו את התמונה כדי להשוות לתוצאה השרופה.
-            </p>
-          )}
         </section>
       )}
 

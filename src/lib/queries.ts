@@ -63,6 +63,7 @@ export type MixtureView = {
   name: string;
   notes: string | null;
   beforeImageUrl: string | null;
+  beforeHex: string | null;
   resultImageUrl: string | null;
   resultHex: string | null;
   hasAmounts: boolean;
@@ -78,6 +79,7 @@ type MixtureRow = {
   name: string;
   notes: string | null;
   beforeImageUrl: string | null;
+  beforeHex: string | null;
   resultImageUrl: string | null;
   resultHex: string | null;
   hasAmounts: boolean;
@@ -135,6 +137,7 @@ const baseMixtureSelect = {
   name: mixtures.name,
   notes: mixtures.notes,
   beforeImageUrl: mixtures.beforeImageUrl,
+  beforeHex: mixtures.beforeHex,
   resultImageUrl: mixtures.resultImageUrl,
   resultHex: mixtures.resultHex,
   hasAmounts: mixtures.hasAmounts,
